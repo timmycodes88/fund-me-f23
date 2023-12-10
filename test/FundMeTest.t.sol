@@ -94,4 +94,28 @@ contract FundMeTest is Test {
         );
         assertEq(contractEndingBalance, 0);
     }
+
+    function testCheaperWithdrawFromMultipleFunders() public funded {
+        uint160 numberOfFunders = 10;
+        uint160 startingFunderIndex = 1;
+        for (uint160 i = startingFunderIndex; i < numberOfFunders; i++) {
+            hoax(address(i), TEN_ETH);
+            fundMe.fund{value: TEN_ETH}();
+        }
+
+        uint256 ownerStartingBalance = fundMe.getOwner().balance;
+        uint256 contractStartingBalance = address(fundMe).balance;
+
+        vm.prank(fundMe.getOwner());
+        fundMe.cheaperWithdraw();
+
+        uint256 ownerEndingBalance = fundMe.getOwner().balance;
+        uint256 contractEndingBalance = address(fundMe).balance;
+
+        assertEq(
+            ownerEndingBalance,
+            ownerStartingBalance + contractStartingBalance
+        );
+        assertEq(contractEndingBalance, 0);
+    }
 }

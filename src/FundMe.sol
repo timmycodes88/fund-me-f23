@@ -40,6 +40,24 @@ contract FundMe {
         _;
     }
 
+    function cheaperWithdraw() public onlyOwner {
+        uint256 fundersLength = s_funders.length;
+
+        address[] memory fundersCopy = s_funders;
+
+        for (uint256 i = 0; i < fundersLength; i++) {
+            address funder = fundersCopy[i];
+            s_addressToAmountFunded[funder] = 0;
+        }
+
+        s_funders = new address[](0);
+
+        (bool success, ) = payable(msg.sender).call{
+            value: address(this).balance
+        }("");
+        require(success, "Failed to withdraw money from contract");
+    }
+
     function withdraw() public onlyOwner {
         for (
             uint256 funderIndex = 0;
