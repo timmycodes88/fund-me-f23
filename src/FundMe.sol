@@ -11,10 +11,10 @@ contract FundMe {
     // $5
     uint256 public constant MINIMUM_USD = 5 * 1000000000000000000;
 
-    address[] public funders;
-    mapping(address => uint256) public addressToAmountFunded;
+    address[] private s_funders;
+    mapping(address => uint256) private s_addressToAmountFunded;
 
-    address public immutable i_owner;
+    address private immutable i_owner;
     AggregatorV3Interface private s_priceFeed;
 
     constructor(address priceFeedAddress) {
@@ -29,8 +29,8 @@ contract FundMe {
             "Not enough ETH"
         );
 
-        addressToAmountFunded[msg.sender] += msg.value;
-        funders.push(msg.sender);
+        s_addressToAmountFunded[msg.sender] += msg.value;
+        s_funders.push(msg.sender);
     }
 
     modifier onlyOwner() {
@@ -43,13 +43,13 @@ contract FundMe {
     function withdraw() public onlyOwner {
         for (
             uint256 funderIndex = 0;
-            funderIndex < funders.length;
+            funderIndex < s_funders.length;
             funderIndex++
         ) {
-            address funder = funders[funderIndex];
-            addressToAmountFunded[funder] = 0;
+            address funder = s_funders[funderIndex];
+            s_addressToAmountFunded[funder] = 0;
         }
-        funders = new address[](0);
+        s_funders = new address[](0);
 
         (bool success, ) = payable(msg.sender).call{
             value: address(this).balance
@@ -67,5 +67,25 @@ contract FundMe {
 
     fallback() external payable {
         fund();
+    }
+
+    // *** Getters ***
+
+    function getFunder(uint256 index) public view returns (address) {
+        return s_funders[index];
+    }
+
+    function getAmountFundedFromAddress(
+        address funder
+    ) public view returns (uint256) {
+        return s_addressToAmountFunded[funder];
+    }
+
+    function getOwner() public view returns (address) {
+        return i_owner;
+    }
+
+    function getPriceFeed() public view returns (address) {
+        return address(s_priceFeed);
     }
 }
