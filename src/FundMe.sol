@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {PriceConverter} from "./PriceConverter.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 error FundMe__NotOwner();
 
@@ -14,14 +15,19 @@ contract FundMe {
     mapping(address => uint256) public addressToAmountFunded;
 
     address public immutable i_owner;
+    AggregatorV3Interface private s_priceFeed;
 
-    constructor() {
+    constructor(address priceFeedAddress) {
         i_owner = msg.sender;
+        s_priceFeed = AggregatorV3Interface(priceFeedAddress);
     }
 
     // Fund - Send money to the contract
     function fund() public payable {
-        require(msg.value.getConversionRate() >= MINIMUM_USD, "Not enough ETH");
+        require(
+            msg.value.getConversionRate(s_priceFeed) >= MINIMUM_USD,
+            "Not enough ETH"
+        );
 
         addressToAmountFunded[msg.sender] += msg.value;
         funders.push(msg.sender);
@@ -49,6 +55,10 @@ contract FundMe {
             value: address(this).balance
         }("");
         require(success, "Failed to withdraw money from contract");
+    }
+
+    function getVersion() public view returns (uint256) {
+        return s_priceFeed.version();
     }
 
     receive() external payable {
